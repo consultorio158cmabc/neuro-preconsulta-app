@@ -37,8 +37,7 @@ edad = st.number_input("Edad", min_value=0, max_value=120)
 sexo = st.selectbox("Sexo", ["Seleccione...", "Mujer", "Hombre", "Otro"])
 consulta = st.radio("Tipo de consulta", ["Primera vez", "Subsecuente"])
 
-# Sección: Selección de motivo de consulta
-st.markdown("### Seleccione su motivo de consulta")
+# Validación inicial de campos generales
 motivo = st.selectbox("Motivo de consulta", [
     "Seleccione...",
     "Dolor / Cirugía Lumbar",
@@ -53,6 +52,16 @@ motivo = st.selectbox("Motivo de consulta", [
     "Síntomas Inespecíficos (mareo, vértigo, náusea, vómito, debilidad)",
     "Otro (especificar)"
 ])
+campos_generales_validos = (
+    nombre.strip() != "" and
+    edad > 0 and
+    sexo != "Seleccione..." and
+    consulta in ["Primera vez", "Subsecuente"] and
+    motivo != "Seleccione..."
+)
+
+# Sección: Selección de motivo de consulta
+st.markdown("### Seleccione su motivo de consulta")
 if motivo == "Dolor / Cirugía Lumbar":
     with st.expander("Ingresar datos de Dolor / Cirugía Lumbar", expanded=True):
         tratamiento = st.radio("Estatus de tratamiento", [
@@ -192,35 +201,47 @@ if motivo == "Dolor / Cirugía Lumbar":
                 ]
             )
 
+        campos_lumbar_validos = (
+            tratamiento != "" and
+            any(sintomas.values()) and
+            vas_lumbar is not None and
+            vas_derecha is not None and
+            vas_izquierda is not None and
+            len(odi_respuestas) >= 5
+        )
+
         if st.button("Enviar", key="enviar_lumbar"):
-            st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
+            if campos_generales_validos and campos_lumbar_validos:
+                st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            datos = {
-                "Fecha y hora": timestamp,
-                "Nombre": nombre,
-                "Edad": edad,
-                "Sexo": sexo,
-                "Tipo de consulta": consulta,
-                "Estatus de tratamiento": tratamiento,
-                "Síntomas": ", ".join([s for s, v in sintomas.items() if v]),
-                "VAS lumbar": vas_lumbar,
-                "VAS pierna derecha": vas_derecha,
-                "VAS pierna izquierda": vas_izquierda,
-                "ODI (%)": odi_puntaje,
-                "MacNab": macnab if macnab else "N/A"
-            }
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                datos = {
+                    "Fecha y hora": timestamp,
+                    "Nombre": nombre,
+                    "Edad": edad,
+                    "Sexo": sexo,
+                    "Tipo de consulta": consulta,
+                    "Estatus de tratamiento": tratamiento,
+                    "Síntomas": ", ".join([s for s, v in sintomas.items() if v]),
+                    "VAS lumbar": vas_lumbar,
+                    "VAS pierna derecha": vas_derecha,
+                    "VAS pierna izquierda": vas_izquierda,
+                    "ODI (%)": odi_puntaje,
+                    "MacNab": macnab if macnab else "N/A"
+                }
 
-            df = pd.DataFrame([datos])
-            try:
-                client = conectar_google_sheets()
-                sheet = client.open("respuestas_neuro").worksheet("Dolor_Cirugía_Lumbar")
-                # Añadir encabezados si la hoja está vacía
-                if sheet.row_count == 0 or not any(sheet.row_values(1)):
-                    sheet.append_row(list(datos.keys()))
-                sheet.append_row(list(datos.values()))
-            except Exception as e:
-                st.error(f"❌ Error al guardar en Google Sheets: {e}")
+                df = pd.DataFrame([datos])
+                try:
+                    client = conectar_google_sheets()
+                    sheet = client.open("respuestas_neuro").worksheet("Dolor_Cirugía_Lumbar")
+                    # Añadir encabezados si la hoja está vacía
+                    if sheet.row_count == 0 or not any(sheet.row_values(1)):
+                        sheet.append_row(list(datos.keys()))
+                    sheet.append_row(list(datos.values()))
+                except Exception as e:
+                    st.error(f"❌ Error al guardar en Google Sheets: {e}")
+            else:
+                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Dolor / Cirugía Cervical":
     with st.expander("Ingresar datos de Dolor / Cirugía Cervical", expanded=True):
         tratamiento_cervical = st.radio("Estatus de tratamiento", [
@@ -368,38 +389,51 @@ elif motivo == "Dolor / Cirugía Cervical":
                 ]
             )
 
+        campos_cervical_validos = (
+            tratamiento_cervical != "" and
+            any(sintomas_cervical.values()) and
+            vas_cervical is not None and
+            vas_brazo_der is not None and
+            vas_brazo_izq is not None and
+            len(ndi_respuestas) == 10 and
+            nurick is not None
+        )
+
         if st.button("Enviar", key="enviar_cervical"):
-            st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
+            if campos_generales_validos and campos_cervical_validos:
+                st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            seleccionados = [s for s, v in sintomas_cervical.items() if v]
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                seleccionados = [s for s, v in sintomas_cervical.items() if v]
 
-            datos = {
-                "Fecha y hora": timestamp,
-                "Nombre": nombre,
-                "Edad": edad,
-                "Sexo": sexo,
-                "Tipo de consulta": consulta,
-                "Estatus de tratamiento": tratamiento_cervical,
-                "Síntomas": ", ".join(seleccionados),
-                "VAS cervical": vas_cervical,
-                "VAS brazo derecho": vas_brazo_der,
-                "VAS brazo izquierdo": vas_brazo_izq,
-                "NDI (%)": ndi_puntaje,
-                "Nurick": nurick,
-                "MacNab": macnab_cervical if macnab_cervical else "N/A"
-            }
+                datos = {
+                    "Fecha y hora": timestamp,
+                    "Nombre": nombre,
+                    "Edad": edad,
+                    "Sexo": sexo,
+                    "Tipo de consulta": consulta,
+                    "Estatus de tratamiento": tratamiento_cervical,
+                    "Síntomas": ", ".join(seleccionados),
+                    "VAS cervical": vas_cervical,
+                    "VAS brazo derecho": vas_brazo_der,
+                    "VAS brazo izquierdo": vas_brazo_izq,
+                    "NDI (%)": ndi_puntaje,
+                    "Nurick": nurick,
+                    "MacNab": macnab_cervical if macnab_cervical else "N/A"
+                }
 
-            df = pd.DataFrame([datos])
-            try:
-                client = conectar_google_sheets()
-                sheet = client.open("respuestas_neuro").worksheet("Dolor_Cirugía_Cervical")
-                # Añadir encabezados si la hoja está vacía o no tiene valores
-                if sheet.row_count == 0 or not any(sheet.row_values(1)):
-                    sheet.append_row(list(datos.keys()))
-                sheet.append_row(list(datos.values()))
-            except Exception as e:
-                st.error(f"❌ Error al guardar en Google Sheets: {e}")
+                df = pd.DataFrame([datos])
+                try:
+                    client = conectar_google_sheets()
+                    sheet = client.open("respuestas_neuro").worksheet("Dolor_Cirugía_Cervical")
+                    # Añadir encabezados si la hoja está vacía o no tiene valores
+                    if sheet.row_count == 0 or not any(sheet.row_values(1)):
+                        sheet.append_row(list(datos.keys()))
+                    sheet.append_row(list(datos.values()))
+                except Exception as e:
+                    st.error(f"❌ Error al guardar en Google Sheets: {e}")
+            else:
+                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Dolor / Cirugía Columna Dorsal":
     with st.expander("Ingresar datos de Dolor / Cirugía en columna dorsal", expanded=True):
         tratamiento_dorsal = st.radio("Estatus de tratamiento", [
@@ -446,34 +480,44 @@ elif motivo == "Dolor / Cirugía Columna Dorsal":
                 ]
             )
 
+        campos_dorsal_validos = (
+            tratamiento_dorsal != "" and
+            any(sintomas_dorsal.values()) and
+            vas_dorsal is not None and
+            nurick_dorsal is not None
+        )
+
         if st.button("Enviar", key="enviar_dorsal"):
-            st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
+            if campos_generales_validos and campos_dorsal_validos:
+                st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            seleccionados = [s for s, v in sintomas_dorsal.items() if v]
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                seleccionados = [s for s, v in sintomas_dorsal.items() if v]
 
-            datos = {
-                "Fecha y hora": timestamp,
-                "Nombre": nombre,
-                "Edad": edad,
-                "Sexo": sexo,
-                "Tipo de consulta": consulta,
-                "Estatus de tratamiento": tratamiento_dorsal,
-                "Síntomas": ", ".join(seleccionados),
-                "VAS dorsal": vas_dorsal,
-                "Nurick": nurick_dorsal,
-                "MacNab": macnab_dorsal if macnab_dorsal else "N/A"
-            }
+                datos = {
+                    "Fecha y hora": timestamp,
+                    "Nombre": nombre,
+                    "Edad": edad,
+                    "Sexo": sexo,
+                    "Tipo de consulta": consulta,
+                    "Estatus de tratamiento": tratamiento_dorsal,
+                    "Síntomas": ", ".join(seleccionados),
+                    "VAS dorsal": vas_dorsal,
+                    "Nurick": nurick_dorsal,
+                    "MacNab": macnab_dorsal if macnab_dorsal else "N/A"
+                }
 
-            df = pd.DataFrame([datos])
-            try:
-                client = conectar_google_sheets()
-                sheet = client.open("respuestas_neuro").worksheet("Dolor_Cirugía_Columna_Dorsal")
-                if sheet.row_count == 0 or not any(sheet.row_values(1)):
-                    sheet.append_row(list(datos.keys()))
-                sheet.append_row(list(datos.values()))
-            except Exception as e:
-                st.error(f"❌ Error al guardar en Google Sheets: {e}")
+                df = pd.DataFrame([datos])
+                try:
+                    client = conectar_google_sheets()
+                    sheet = client.open("respuestas_neuro").worksheet("Dolor_Cirugía_Columna_Dorsal")
+                    if sheet.row_count == 0 or not any(sheet.row_values(1)):
+                        sheet.append_row(list(datos.keys()))
+                    sheet.append_row(list(datos.values()))
+                except Exception as e:
+                    st.error(f"❌ Error al guardar en Google Sheets: {e}")
+            else:
+                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Tumor Intracraneal":
     with st.expander("Ingresar datos de Tumor Intracraneal", expanded=True):
         tratamiento_tumor = st.radio("Estatus de tratamiento", [
@@ -521,36 +565,49 @@ elif motivo == "Tumor Intracraneal":
         quimio = st.radio("¿Ha recibido quimioterapia?", ["No", "Sí"])
         ciclos_quimio = st.number_input("¿Cuántos ciclos ha recibido?", min_value=0, step=1) if quimio == "Sí" else None
 
+        campos_tumor_validos = (
+            tratamiento_tumor != "" and
+            any(sintomas_tumor.values()) and
+            kps is not None and
+            radio_terapia in ["No", "Sí"] and
+            quimio in ["No", "Sí"] and
+            (radio_terapia == "No" or sesiones_radio is not None) and
+            (quimio == "No" or ciclos_quimio is not None)
+        )
+
         if st.button("Enviar", key="enviar_tumor"):
-            st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
+            if campos_generales_validos and campos_tumor_validos:
+                st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            seleccionados = [s for s, v in sintomas_tumor.items() if v]
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                seleccionados = [s for s, v in sintomas_tumor.items() if v]
 
-            datos = {
-                "Fecha y hora": timestamp,
-                "Nombre": nombre,
-                "Edad": edad,
-                "Sexo": sexo,
-                "Tipo de consulta": consulta,
-                "Estatus de tratamiento": tratamiento_tumor,
-                "Síntomas": ", ".join(seleccionados),
-                "KPS": kps,
-                "Radioterapia": radio_terapia,
-                "Sesiones radioterapia": sesiones_radio if sesiones_radio is not None else "N/A",
-                "Quimioterapia": quimio,
-                "Ciclos quimioterapia": ciclos_quimio if ciclos_quimio is not None else "N/A"
-            }
+                datos = {
+                    "Fecha y hora": timestamp,
+                    "Nombre": nombre,
+                    "Edad": edad,
+                    "Sexo": sexo,
+                    "Tipo de consulta": consulta,
+                    "Estatus de tratamiento": tratamiento_tumor,
+                    "Síntomas": ", ".join(seleccionados),
+                    "KPS": kps,
+                    "Radioterapia": radio_terapia,
+                    "Sesiones radioterapia": sesiones_radio if sesiones_radio is not None else "N/A",
+                    "Quimioterapia": quimio,
+                    "Ciclos quimioterapia": ciclos_quimio if ciclos_quimio is not None else "N/A"
+                }
 
-            df = pd.DataFrame([datos])
-            try:
-                client = conectar_google_sheets()
-                sheet = client.open("respuestas_neuro").worksheet("Tumor_Intracraneal")
-                if sheet.row_count == 0 or not any(sheet.row_values(1)):
-                    sheet.append_row(list(datos.keys()))
-                sheet.append_row(list(datos.values()))
-            except Exception as e:
-                st.error(f"❌ Error al guardar en Google Sheets: {e}")
+                df = pd.DataFrame([datos])
+                try:
+                    client = conectar_google_sheets()
+                    sheet = client.open("respuestas_neuro").worksheet("Tumor_Intracraneal")
+                    if sheet.row_count == 0 or not any(sheet.row_values(1)):
+                        sheet.append_row(list(datos.keys()))
+                    sheet.append_row(list(datos.values()))
+                except Exception as e:
+                    st.error(f"❌ Error al guardar en Google Sheets: {e}")
+            else:
+                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Neuralgia del Trigémino":
     with st.expander("Ingresar datos de Neuralgia del Trigémino", expanded=True):
         tratamiento_trigemino = st.radio("Estatus de tratamiento", [
@@ -586,34 +643,45 @@ elif motivo == "Neuralgia del Trigémino":
             ]
         )
 
+        campos_trigemino_validos = (
+            tratamiento_trigemino != "" and
+            any(sintomas_trigemino.values()) and
+            vas_derecha is not None and
+            vas_izquierda is not None and
+            bni is not None
+        )
+
         if st.button("Enviar", key="enviar_trigemino"):
-            st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
+            if campos_generales_validos and campos_trigemino_validos:
+                st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            seleccionados = [s for s, v in sintomas_trigemino.items() if v]
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                seleccionados = [s for s, v in sintomas_trigemino.items() if v]
 
-            datos = {
-                "Fecha y hora": timestamp,
-                "Nombre": nombre,
-                "Edad": edad,
-                "Sexo": sexo,
-                "Tipo de consulta": consulta,
-                "Estatus de tratamiento": tratamiento_trigemino,
-                "Síntomas": ", ".join(seleccionados),
-                "VAS hemicara derecha": vas_derecha,
-                "VAS hemicara izquierda": vas_izquierda,
-                "BNI": bni
-            }
+                datos = {
+                    "Fecha y hora": timestamp,
+                    "Nombre": nombre,
+                    "Edad": edad,
+                    "Sexo": sexo,
+                    "Tipo de consulta": consulta,
+                    "Estatus de tratamiento": tratamiento_trigemino,
+                    "Síntomas": ", ".join(seleccionados),
+                    "VAS hemicara derecha": vas_derecha,
+                    "VAS hemicara izquierda": vas_izquierda,
+                    "BNI": bni
+                }
 
-            df = pd.DataFrame([datos])
-            try:
-                client = conectar_google_sheets()
-                sheet = client.open("respuestas_neuro").worksheet("Neuralgia_Trigemino")
-                if sheet.row_count == 0 or not any(sheet.row_values(1)):
-                    sheet.append_row(list(datos.keys()))
-                sheet.append_row(list(datos.values()))
-            except Exception as e:
-                st.error(f"❌ Error al guardar en Google Sheets: {e}")
+                df = pd.DataFrame([datos])
+                try:
+                    client = conectar_google_sheets()
+                    sheet = client.open("respuestas_neuro").worksheet("Neuralgia_Trigemino")
+                    if sheet.row_count == 0 or not any(sheet.row_values(1)):
+                        sheet.append_row(list(datos.keys()))
+                    sheet.append_row(list(datos.values()))
+                except Exception as e:
+                    st.error(f"❌ Error al guardar en Google Sheets: {e}")
+            else:
+                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Aneurisma Intracraneal / Malformación Arteriovenosa / Angioma Cavernoso":
     with st.expander("Ingresar datos de Aneurisma / MAV / Cavernoma", expanded=True):
         tratamiento_vascular = st.radio("Estatus de tratamiento", [
@@ -654,31 +722,40 @@ elif motivo == "Aneurisma Intracraneal / Malformación Arteriovenosa / Angioma C
         ]
         kps_vascular = st.radio("Seleccione la opción que más se parezca a su estado actual:", kps_opciones)
 
+        campos_vascular_validos = (
+            tratamiento_vascular != "" and
+            any(sintomas_vascular.values()) and
+            kps_vascular is not None
+        )
+
         if st.button("Enviar", key="enviar_vascular"):
-            st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            seleccionados = [s for s, v in sintomas_vascular.items() if v]
+            if campos_generales_validos and campos_vascular_validos:
+                st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                seleccionados = [s for s, v in sintomas_vascular.items() if v]
 
-            datos = {
-                "Fecha y hora": timestamp,
-                "Nombre": nombre,
-                "Edad": edad,
-                "Sexo": sexo,
-                "Tipo de consulta": consulta,
-                "Estatus de tratamiento": tratamiento_vascular,
-                "Síntomas": ", ".join(seleccionados),
-                "KPS": kps_vascular
-            }
+                datos = {
+                    "Fecha y hora": timestamp,
+                    "Nombre": nombre,
+                    "Edad": edad,
+                    "Sexo": sexo,
+                    "Tipo de consulta": consulta,
+                    "Estatus de tratamiento": tratamiento_vascular,
+                    "Síntomas": ", ".join(seleccionados),
+                    "KPS": kps_vascular
+                }
 
-            df = pd.DataFrame([datos])
-            try:
-                client = conectar_google_sheets()
-                sheet = client.open("respuestas_neuro").worksheet("Aneurisma_MAV_Cavernoma")
-                if sheet.row_count == 0 or not any(sheet.row_values(1)):
-                    sheet.append_row(list(datos.keys()))
-                sheet.append_row(list(datos.values()))
-            except Exception as e:
-                st.error(f"❌ Error al guardar en Google Sheets: {e}")
+                df = pd.DataFrame([datos])
+                try:
+                    client = conectar_google_sheets()
+                    sheet = client.open("respuestas_neuro").worksheet("Aneurisma_MAV_Cavernoma")
+                    if sheet.row_count == 0 or not any(sheet.row_values(1)):
+                        sheet.append_row(list(datos.keys()))
+                    sheet.append_row(list(datos.values()))
+                except Exception as e:
+                    st.error(f"❌ Error al guardar en Google Sheets: {e}")
+            else:
+                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Traumatismo Craneoencefálico":
     with st.expander("Ingresar datos de Traumatismo Craneoencefálico", expanded=True):
         st.markdown("### Nivel de Recuperación Neurológica")
@@ -695,27 +772,34 @@ elif motivo == "Traumatismo Craneoencefálico":
             ]
         )
 
-        if st.button("Enviar", key="enviar_tce"):
-            st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            datos = {
-                "Fecha y hora": timestamp,
-                "Nombre": nombre,
-                "Edad": edad,
-                "Sexo": sexo,
-                "Tipo de consulta": consulta,
-                "GOS-E": gos
-            }
+        campos_tce_validos = (
+            gos is not None
+        )
 
-            df = pd.DataFrame([datos])
-            try:
-                client = conectar_google_sheets()
-                sheet = client.open("respuestas_neuro").worksheet("Traumatismo_Craneoencefalico")
-                if sheet.row_count == 0 or not any(sheet.row_values(1)):
-                    sheet.append_row(list(datos.keys()))
-                sheet.append_row(list(datos.values()))
-            except Exception as e:
-                st.error(f"❌ Error al guardar en Google Sheets: {e}")
+        if st.button("Enviar", key="enviar_tce"):
+            if campos_generales_validos and campos_tce_validos:
+                st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                datos = {
+                    "Fecha y hora": timestamp,
+                    "Nombre": nombre,
+                    "Edad": edad,
+                    "Sexo": sexo,
+                    "Tipo de consulta": consulta,
+                    "GOS-E": gos
+                }
+
+                df = pd.DataFrame([datos])
+                try:
+                    client = conectar_google_sheets()
+                    sheet = client.open("respuestas_neuro").worksheet("Traumatismo_Craneoencefalico")
+                    if sheet.row_count == 0 or not any(sheet.row_values(1)):
+                        sheet.append_row(list(datos.keys()))
+                    sheet.append_row(list(datos.values()))
+                except Exception as e:
+                    st.error(f"❌ Error al guardar en Google Sheets: {e}")
+            else:
+                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Enfermedad Vascular Cerebral (EVC / Ictus)":
     with st.expander("Ingresar datos de Enfermedad Vascular Cerebral (Ictus)", expanded=True):
         tratamiento_evc = st.radio("Estatus de tratamiento", [
@@ -753,32 +837,41 @@ elif motivo == "Enfermedad Vascular Cerebral (EVC / Ictus)":
             ]
         )
 
+        campos_evc_validos = (
+            tratamiento_evc != "" and
+            any(sintomas_evc.values()) and
+            rankin is not None
+        )
+
         if st.button("Enviar", key="enviar_evc"):
-            st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
+            if campos_generales_validos and campos_evc_validos:
+                st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            seleccionados = [s for s, v in sintomas_evc.items() if v]
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                seleccionados = [s for s, v in sintomas_evc.items() if v]
 
-            datos = {
-                "Fecha y hora": timestamp,
-                "Nombre": nombre,
-                "Edad": edad,
-                "Sexo": sexo,
-                "Tipo de consulta": consulta,
-                "Estatus de tratamiento": tratamiento_evc,
-                "Síntomas": ", ".join(seleccionados),
-                "mRS (Modified Rankin Scale)": rankin
-            }
+                datos = {
+                    "Fecha y hora": timestamp,
+                    "Nombre": nombre,
+                    "Edad": edad,
+                    "Sexo": sexo,
+                    "Tipo de consulta": consulta,
+                    "Estatus de tratamiento": tratamiento_evc,
+                    "Síntomas": ", ".join(seleccionados),
+                    "mRS (Modified Rankin Scale)": rankin
+                }
 
-            df = pd.DataFrame([datos])
-            try:
-                client = conectar_google_sheets()
-                sheet = client.open("respuestas_neuro").worksheet("EVC_Ictus")
-                if sheet.row_count == 0 or not any(sheet.row_values(1)):
-                    sheet.append_row(list(datos.keys()))
-                sheet.append_row(list(datos.values()))
-            except Exception as e:
-                st.error(f"❌ Error al guardar en Google Sheets: {e}")
+                df = pd.DataFrame([datos])
+                try:
+                    client = conectar_google_sheets()
+                    sheet = client.open("respuestas_neuro").worksheet("EVC_Ictus")
+                    if sheet.row_count == 0 or not any(sheet.row_values(1)):
+                        sheet.append_row(list(datos.keys()))
+                    sheet.append_row(list(datos.values()))
+                except Exception as e:
+                    st.error(f"❌ Error al guardar en Google Sheets: {e}")
+            else:
+                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Hidrocefalia":
     with st.expander("Ingresar datos de Hidrocefalia", expanded=True):
         tratamiento_hidro = st.radio("Estatus de tratamiento", [
@@ -802,31 +895,39 @@ elif motivo == "Hidrocefalia":
             "Dificultad para iniciar la marcha": st.checkbox("Dificultad para iniciar la marcha")
         }
 
+        campos_hidro_validos = (
+            tratamiento_hidro != "" and
+            any(sintomas_hidro.values())
+        )
+
         if st.button("Enviar", key="enviar_hidro"):
-            st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
+            if campos_generales_validos and campos_hidro_validos:
+                st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            seleccionados = [s for s, v in sintomas_hidro.items() if v]
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                seleccionados = [s for s, v in sintomas_hidro.items() if v]
 
-            datos = {
-                "Fecha y hora": timestamp,
-                "Nombre": nombre,
-                "Edad": edad,
-                "Sexo": sexo,
-                "Tipo de consulta": consulta,
-                "Estatus de tratamiento": tratamiento_hidro,
-                "Síntomas": ", ".join(seleccionados)
-            }
+                datos = {
+                    "Fecha y hora": timestamp,
+                    "Nombre": nombre,
+                    "Edad": edad,
+                    "Sexo": sexo,
+                    "Tipo de consulta": consulta,
+                    "Estatus de tratamiento": tratamiento_hidro,
+                    "Síntomas": ", ".join(seleccionados)
+                }
 
-            df = pd.DataFrame([datos])
-            try:
-                client = conectar_google_sheets()
-                sheet = client.open("respuestas_neuro").worksheet("Hidrocefalia")
-                if sheet.row_count == 0 or not any(sheet.row_values(1)):
-                    sheet.append_row(list(datos.keys()))
-                sheet.append_row(list(datos.values()))
-            except Exception as e:
-                st.error(f"❌ Error al guardar en Google Sheets: {e}")
+                df = pd.DataFrame([datos])
+                try:
+                    client = conectar_google_sheets()
+                    sheet = client.open("respuestas_neuro").worksheet("Hidrocefalia")
+                    if sheet.row_count == 0 or not any(sheet.row_values(1)):
+                        sheet.append_row(list(datos.keys()))
+                    sheet.append_row(list(datos.values()))
+                except Exception as e:
+                    st.error(f"❌ Error al guardar en Google Sheets: {e}")
+            else:
+                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 
 elif motivo == "Síntomas Inespecíficos (mareo, vértigo, náusea, vómito, debilidad)":
     with st.expander("Ingresar datos de Síntomas Inespecíficos", expanded=True):
@@ -858,60 +959,76 @@ elif motivo == "Síntomas Inespecíficos (mareo, vértigo, náusea, vómito, deb
         st.image("VAS.jpg", caption="Escala Visual Análoga (VAS)", use_container_width=True)
         vas_inesp = st.radio("¿Qué tan intensos son sus síntomas actualmente?", [f"{i}%" for i in range(0, 101, 10)], horizontal=True)
 
+        campos_inesp_validos = (
+            tratamiento_inesp != "" and
+            any(sintomas_inesp.values()) and
+            vas_inesp is not None
+        )
+
         if st.button("Enviar", key="enviar_inesp"):
-            st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
+            if campos_generales_validos and campos_inesp_validos:
+                st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            seleccionados = [s for s, v in sintomas_inesp.items() if v]
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                seleccionados = [s for s, v in sintomas_inesp.items() if v]
 
-            datos = {
-                "Fecha y hora": timestamp,
-                "Nombre": nombre,
-                "Edad": edad,
-                "Sexo": sexo,
-                "Tipo de consulta": consulta,
-                "Estatus de tratamiento": tratamiento_inesp,
-                "Síntomas": ", ".join(seleccionados),
-                "VAS general": vas_inesp
-            }
+                datos = {
+                    "Fecha y hora": timestamp,
+                    "Nombre": nombre,
+                    "Edad": edad,
+                    "Sexo": sexo,
+                    "Tipo de consulta": consulta,
+                    "Estatus de tratamiento": tratamiento_inesp,
+                    "Síntomas": ", ".join(seleccionados),
+                    "VAS general": vas_inesp
+                }
 
-            df = pd.DataFrame([datos])
-            try:
-                client = conectar_google_sheets()
-                sheet = client.open("respuestas_neuro").worksheet("Sintomas_Inespecificos")
-                if sheet.row_count == 0 or not any(sheet.row_values(1)):
-                    sheet.append_row(list(datos.keys()))
-                sheet.append_row(list(datos.values()))
-            except Exception as e:
-                st.error(f"❌ Error al guardar en Google Sheets: {e}")
+                df = pd.DataFrame([datos])
+                try:
+                    client = conectar_google_sheets()
+                    sheet = client.open("respuestas_neuro").worksheet("Sintomas_Inespecificos")
+                    if sheet.row_count == 0 or not any(sheet.row_values(1)):
+                        sheet.append_row(list(datos.keys()))
+                    sheet.append_row(list(datos.values()))
+                except Exception as e:
+                    st.error(f"❌ Error al guardar en Google Sheets: {e}")
+            else:
+                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Otro (especificar)":
     with st.expander("Ingresar datos de Otro motivo de consulta", expanded=True):
         motivo_otro = st.text_input("Describa brevemente el motivo de su consulta:")
         sintomas_otro = st.text_area("Describa los síntomas que presenta:")
 
+        campos_otro_validos = (
+            motivo_otro.strip() != "" and sintomas_otro.strip() != ""
+        )
+
         if st.button("Enviar", key="enviar_otro"):
-            st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
+            if campos_generales_validos and campos_otro_validos:
+                st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            datos = {
-                "Fecha y hora": timestamp,
-                "Nombre": nombre,
-                "Edad": edad,
-                "Sexo": sexo,
-                "Tipo de consulta": consulta,
-                "Motivo especificado": motivo_otro,
-                "Síntomas": sintomas_otro
-            }
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                datos = {
+                    "Fecha y hora": timestamp,
+                    "Nombre": nombre,
+                    "Edad": edad,
+                    "Sexo": sexo,
+                    "Tipo de consulta": consulta,
+                    "Motivo especificado": motivo_otro,
+                    "Síntomas": sintomas_otro
+                }
 
-            df = pd.DataFrame([datos])
-            try:
-                client = conectar_google_sheets()
-                sheet = client.open("respuestas_neuro").worksheet("Otro")
-                if sheet.row_count == 0 or not any(sheet.row_values(1)):
-                    sheet.append_row(list(datos.keys()))
-                sheet.append_row(list(datos.values()))
-            except Exception as e:
-                st.error(f"❌ Error al guardar en Google Sheets: {e}")
+                df = pd.DataFrame([datos])
+                try:
+                    client = conectar_google_sheets()
+                    sheet = client.open("respuestas_neuro").worksheet("Otro")
+                    if sheet.row_count == 0 or not any(sheet.row_values(1)):
+                        sheet.append_row(list(datos.keys()))
+                    sheet.append_row(list(datos.values()))
+                except Exception as e:
+                    st.error(f"❌ Error al guardar en Google Sheets: {e}")
+            else:
+                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo != "Seleccione..." and motivo not in [
     "Dolor / Cirugía Lumbar",
     "Dolor / Cirugía Cervical",
