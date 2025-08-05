@@ -376,6 +376,49 @@ elif motivo == "Dolor / Cirugía Cervical":
             ]
         )
 
+        # --- MJOA Section ---
+        st.markdown("### Sistema de Evaluación de Motricidad, Sensibilidad y Control de Esfínteres")
+
+        mjoa_preguntas = [
+            ("Función Motora de Brazos (Extremidades Superiores)", [
+                "0 - Incapaz de mover las manos.",
+                "1 - Incapaz de comer con una cuchara, pero capaz de mover las manos.",
+                "2 - Incapacidad de abotonar una camisa, pero capaz de comer con una cuchara.",
+                "3 - Capaz de abotonar una camisa con mucha dificultad.",
+                "4 - Capaz de abotonar camisa con poca dificultad.",
+                "5 - Sin alteraciones."
+            ]),
+            ("Función Motora de Piernas (Extremidades Inferiores)", [
+                "0 - Pérdida completa de la movilidad y sensibilidad en piernas.",
+                "1 - Preservación de la sensibilidad, incapaz de mover las piernas.",
+                "2 - Capaz de mover las piernas, pero incapaz de caminar.",
+                "3 - Capaz de caminar en piso plano con apoyo (ej. bastón, andadera).",
+                "4 - Capaz de subir/bajar escaleras con uso de barandal.",
+                "5 - Inestabilidad moderada, aunque es capaz subir/bajar escaleras sin uso de barandal.",
+                "6 - Inestabilidad leve, aunque camina sin apoyo pero con marcha lenta y suave",
+                "7 - Sin alteraciones"
+            ]),
+            ("Sensibilidad", [
+                "0 - Pérdida completa de la sensibilidad en manos.",
+                "1 - Pérdida severa de la sensibilidad y/o dolor.",
+                "2 - Leve pérdida de la sensibilidad en manos/brazos.",
+                "3 - Sin alteraciones de la sensibilidad."
+            ]),
+            ("Disfunción de Esfínteres", [
+                "0 - Incapacidad de orinar voluntariamente.",
+                "1 - Dificultad marcada para poder orinar voluntariamente.",
+                "2 - Dificultad leve-moderada para orinar voluntariamente.",
+                "3 - Sin alteraciones."
+            ])
+        ]
+
+        mjoa_respuestas = []
+        for i, (titulo, opciones) in enumerate(mjoa_preguntas):
+            respuesta = st.radio(titulo, opciones, key=f"mjoa_{i}")
+            mjoa_respuestas.append(opciones.index(respuesta))
+
+        mjoa_total = sum(mjoa_respuestas)
+
         macnab_cervical = None
         if tratamiento_cervical == "Operado previamente con Dr. Ulises García":
             st.markdown("### Satisfacción del Paciente con Procedimiento Quirúrgico")
@@ -419,6 +462,7 @@ elif motivo == "Dolor / Cirugía Cervical":
                     "VAS brazo izquierdo": vas_brazo_izq,
                     "NDI (%)": ndi_puntaje,
                     "Nurick": nurick,
+                    "MJOA (puntos)": mjoa_total,
                     "MacNab": macnab_cervical if macnab_cervical else "N/A"
                 }
 
