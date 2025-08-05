@@ -65,12 +65,13 @@ st.markdown("### Seleccione su motivo de consulta")
 if motivo == "Dolor / Cirugía Lumbar":
     with st.expander("Ingresar datos de Dolor / Cirugía Lumbar", expanded=True):
         tratamiento = st.radio("Estatus de tratamiento", [
+            "Seleccione...",
             "Será valorado en consulta",
             "Tratamiento con medicamentos y fisioterapia",
             "Preparación para cirugía",
             "Operado previamente con otro doctor",
             "Operado previamente con Dr. Ulises García"
-        ])
+        ], index=0)
 
         st.markdown("### Seleccione los síntomas asociados a su motivo de consulta:")
         sintomas = {
@@ -194,24 +195,54 @@ if motivo == "Dolor / Cirugía Lumbar":
             macnab = st.radio(
                 "¿Cómo describiría su estado actual tras la cirugía?",
                 [
+                    "Seleccione...",
                     "Excelente - No presento dolor ni restricción de la movilidad. Regresé a mi trabajo y a mis actividades cotidianas.",
                     "Bueno - Presento dolor ocasional en espalda baja, presento un alivio de los síntomas en comparación a antes de la cirugía. Regresé a mi ocupación y actividades cotidianas, pero con algunas restricciones.",
                     "Regular - Presento cierta mejoría funcional, aunque regresar al trabajo y a mis actividades cotidianas ha sido complicado.",
                     "Malo - Persisto con dolor lumbar y/o extensión hacia las piernas, requerí o estoy considerando someterme a una nueva cirugía para aliviar el dolor."
-                ]
+                ], index=0
             )
 
         campos_lumbar_validos = (
-            tratamiento != "" and
+            tratamiento != "Seleccione..." and
             any(sintomas.values()) and
             vas_lumbar is not None and
             vas_derecha is not None and
             vas_izquierda is not None and
-            len(odi_respuestas) >= 5
+            len(odi_respuestas) >= 5 and
+            (macnab is None or macnab != "Seleccione...")
         )
 
         if st.button("Enviar", key="enviar_lumbar"):
-            if campos_generales_validos and campos_lumbar_validos:
+            errores = []
+            if not campos_generales_validos:
+                if nombre.strip() == "":
+                    errores.append("Debe ingresar el nombre completo.")
+                if edad <= 0:
+                    errores.append("Debe ingresar una edad válida.")
+                if sexo == "Seleccione...":
+                    errores.append("Debe seleccionar el sexo.")
+                if consulta not in ["Primera vez", "Subsecuente"]:
+                    errores.append("Debe seleccionar el tipo de consulta.")
+                if motivo == "Seleccione...":
+                    errores.append("Debe seleccionar el motivo de consulta.")
+            if tratamiento == "Seleccione...":
+                errores.append("Debe seleccionar el estatus de tratamiento.")
+            if not any(sintomas.values()):
+                errores.append("Debe seleccionar al menos un síntoma asociado.")
+            if vas_lumbar is None:
+                errores.append("Debe seleccionar la intensidad del dolor lumbar.")
+            if vas_derecha is None:
+                errores.append("Debe seleccionar la intensidad del dolor en pierna derecha.")
+            if vas_izquierda is None:
+                errores.append("Debe seleccionar la intensidad del dolor en pierna izquierda.")
+            if len(odi_respuestas) < 5:
+                errores.append("Debe responder al menos 5 preguntas de funcionalidad ODI.")
+            if macnab is not None and macnab == "Seleccione...":
+                errores.append("Debe seleccionar la satisfacción tras la cirugía (MacNab).")
+            if errores:
+                st.error("❌ Por favor complete los siguientes campos obligatorios antes de enviar el formulario:\n\n" + "\n".join([f"- {e}" for e in errores]))
+            else:
                 st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -240,17 +271,16 @@ if motivo == "Dolor / Cirugía Lumbar":
                     sheet.append_row(list(datos.values()))
                 except Exception as e:
                     st.error(f"❌ Error al guardar en Google Sheets: {e}")
-            else:
-                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Dolor / Cirugía Cervical":
     with st.expander("Ingresar datos de Dolor / Cirugía Cervical", expanded=True):
         tratamiento_cervical = st.radio("Estatus de tratamiento", [
+            "Seleccione...",
             "Será valorado en consulta",
             "Tratamiento con medicamentos y fisioterapia",
             "Preparación para cirugía",
             "Operado previamente con otro doctor",
             "Operado previamente con Dr. Ulises García"
-        ])
+        ], index=0)
 
         st.markdown("### Seleccione los síntomas asociados a su motivo de consulta:")
         sintomas_cervical = {
@@ -367,13 +397,14 @@ elif motivo == "Dolor / Cirugía Cervical":
         nurick = st.radio(
             "Seleccione el grado que mejor describa su capacidad para caminar:",
             [
+                "Seleccione...",
                 "0 - Sin dificultad para caminar",
                 "1 - Dificultad para caminar sin limitación de la actividad",
                 "2 - Dificultad para caminar que limita el rendimiento o la velocidad",
                 "3 - Solo puede trabajar con asistencia de bastón o barandal",
                 "4 - Requiere asistencia de otra persona",
                 "5 - Confinado a silla de ruedas o cama"
-            ]
+            ], index=0
         )
 
         # --- MJOA Section ---
@@ -425,25 +456,57 @@ elif motivo == "Dolor / Cirugía Cervical":
             macnab_cervical = st.radio(
                 "¿Cómo describiría su estado actual tras la cirugía?",
                 [
+                    "Seleccione...",
                     "Excelente - No presento dolor ni restricción de la movilidad. Regresé a mi trabajo y a mis actividades cotidianas.",
                     "Bueno - Presento dolor ocasional en cuello o brazo, con alivio funcional comparado a antes de la cirugía.",
                     "Regular - Presento cierta mejoría funcional, pero regresar al trabajo o actividades ha sido complicado.",
                     "Malo - Persisto con dolor cervical y/o irradiación a brazos. Considero una nueva cirugía."
-                ]
+                ], index=0
             )
 
         campos_cervical_validos = (
-            tratamiento_cervical != "" and
+            tratamiento_cervical != "Seleccione..." and
             any(sintomas_cervical.values()) and
             vas_cervical is not None and
             vas_brazo_der is not None and
             vas_brazo_izq is not None and
             len(ndi_respuestas) == 10 and
-            nurick is not None
+            nurick is not None and nurick != "Seleccione..." and
+            (macnab_cervical is None or macnab_cervical != "Seleccione...")
         )
 
         if st.button("Enviar", key="enviar_cervical"):
-            if campos_generales_validos and campos_cervical_validos:
+            errores = []
+            if not campos_generales_validos:
+                if nombre.strip() == "":
+                    errores.append("Debe ingresar el nombre completo.")
+                if edad <= 0:
+                    errores.append("Debe ingresar una edad válida.")
+                if sexo == "Seleccione...":
+                    errores.append("Debe seleccionar el sexo.")
+                if consulta not in ["Primera vez", "Subsecuente"]:
+                    errores.append("Debe seleccionar el tipo de consulta.")
+                if motivo == "Seleccione...":
+                    errores.append("Debe seleccionar el motivo de consulta.")
+            if tratamiento_cervical == "Seleccione...":
+                errores.append("Debe seleccionar el estatus de tratamiento.")
+            if not any(sintomas_cervical.values()):
+                errores.append("Debe seleccionar al menos un síntoma asociado.")
+            if vas_cervical is None:
+                errores.append("Debe seleccionar la intensidad del dolor cervical.")
+            if vas_brazo_der is None:
+                errores.append("Debe seleccionar la intensidad del dolor en brazo derecho.")
+            if vas_brazo_izq is None:
+                errores.append("Debe seleccionar la intensidad del dolor en brazo izquierdo.")
+            if len(ndi_respuestas) < 10:
+                errores.append("Debe responder todas las preguntas de funcionalidad NDI.")
+            if nurick is None or nurick == "Seleccione...":
+                errores.append("Debe seleccionar el grado de dificultad para la marcha (Nurick).")
+            if macnab_cervical is not None and macnab_cervical == "Seleccione...":
+                errores.append("Debe seleccionar la satisfacción tras la cirugía (MacNab).")
+            if errores:
+                st.error("❌ Por favor complete los siguientes campos obligatorios antes de enviar el formulario:\n\n" + "\n".join([f"- {e}" for e in errores]))
+            else:
                 st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -476,17 +539,16 @@ elif motivo == "Dolor / Cirugía Cervical":
                     sheet.append_row(list(datos.values()))
                 except Exception as e:
                     st.error(f"❌ Error al guardar en Google Sheets: {e}")
-            else:
-                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Dolor / Cirugía Columna Dorsal":
     with st.expander("Ingresar datos de Dolor / Cirugía en columna dorsal", expanded=True):
         tratamiento_dorsal = st.radio("Estatus de tratamiento", [
+            "Seleccione...",
             "Será valorado en consulta",
             "Tratamiento con medicamentos y fisioterapia",
             "Preparación para cirugía",
             "Operado previamente con otro doctor",
             "Operado previamente con Dr. Ulises García"
-        ])
+        ], index=0)
 
         st.markdown("### Seleccione los síntomas asociados a su motivo de consulta:")
         sintomas_dorsal = {
@@ -502,13 +564,14 @@ elif motivo == "Dolor / Cirugía Columna Dorsal":
         nurick_dorsal = st.radio(
             "Seleccione el grado que mejor describa su capacidad para caminar:",
             [
+                "Seleccione...",
                 "0 - Sin dificultad para caminar",
                 "1 - Dificultad para caminar sin limitación de la actividad",
                 "2 - Dificultad para caminar que limita el rendimiento o la velocidad",
                 "3 - Solo puede trabajar con asistencia de bastón o barandal",
                 "4 - Requiere asistencia de otra persona",
                 "5 - Confinado a silla de ruedas o cama"
-            ]
+            ], index=0
         )
 
         macnab_dorsal = None
@@ -517,22 +580,48 @@ elif motivo == "Dolor / Cirugía Columna Dorsal":
             macnab_dorsal = st.radio(
                 "¿Cómo describiría su estado actual tras la cirugía?",
                 [
+                    "Seleccione...",
                     "Excelente - No presento dolor ni restricción de la movilidad. Regresé a mi trabajo y a mis actividades cotidianas.",
                     "Bueno - Presento dolor ocasional en espalda, presento un alivio de los síntomas en comparación a antes de la cirugía. Regresé a mi ocupación y actividades cotidianas, pero con algunas restricciones.",
                     "Regular - Presento cierta mejoría funcional, aunque regresar al trabajo y a mis actividades cotidianas ha sido complicado.",
                     "Malo - Persisto con dolor dorsal y/o síntomas neurológicos, requerí o estoy considerando someterme a una nueva cirugía para aliviar el dolor."
-                ]
+                ], index=0
             )
 
         campos_dorsal_validos = (
-            tratamiento_dorsal != "" and
+            tratamiento_dorsal != "Seleccione..." and
             any(sintomas_dorsal.values()) and
             vas_dorsal is not None and
-            nurick_dorsal is not None
+            nurick_dorsal is not None and nurick_dorsal != "Seleccione..." and
+            (macnab_dorsal is None or macnab_dorsal != "Seleccione...")
         )
 
         if st.button("Enviar", key="enviar_dorsal"):
-            if campos_generales_validos and campos_dorsal_validos:
+            errores = []
+            if not campos_generales_validos:
+                if nombre.strip() == "":
+                    errores.append("Debe ingresar el nombre completo.")
+                if edad <= 0:
+                    errores.append("Debe ingresar una edad válida.")
+                if sexo == "Seleccione...":
+                    errores.append("Debe seleccionar el sexo.")
+                if consulta not in ["Primera vez", "Subsecuente"]:
+                    errores.append("Debe seleccionar el tipo de consulta.")
+                if motivo == "Seleccione...":
+                    errores.append("Debe seleccionar el motivo de consulta.")
+            if tratamiento_dorsal == "Seleccione...":
+                errores.append("Debe seleccionar el estatus de tratamiento.")
+            if not any(sintomas_dorsal.values()):
+                errores.append("Debe seleccionar al menos un síntoma asociado.")
+            if vas_dorsal is None:
+                errores.append("Debe seleccionar la intensidad del dolor dorsal.")
+            if nurick_dorsal is None or nurick_dorsal == "Seleccione...":
+                errores.append("Debe seleccionar el grado de dificultad para la marcha (Nurick).")
+            if macnab_dorsal is not None and macnab_dorsal == "Seleccione...":
+                errores.append("Debe seleccionar la satisfacción tras la cirugía (MacNab).")
+            if errores:
+                st.error("❌ Por favor complete los siguientes campos obligatorios antes de enviar el formulario:\n\n" + "\n".join([f"- {e}" for e in errores]))
+            else:
                 st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -560,17 +649,16 @@ elif motivo == "Dolor / Cirugía Columna Dorsal":
                     sheet.append_row(list(datos.values()))
                 except Exception as e:
                     st.error(f"❌ Error al guardar en Google Sheets: {e}")
-            else:
-                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Tumor Intracraneal":
     with st.expander("Ingresar datos de Tumor Intracraneal", expanded=True):
         tratamiento_tumor = st.radio("Estatus de tratamiento", [
+            "Seleccione...",
             "Será valorado en consulta",
             "Tratamiento con medicamentos y fisioterapia",
             "Preparación para cirugía",
             "Operado previamente con otro doctor",
             "Operado previamente con Dr. Ulises García"
-        ])
+        ], index=0)
 
         st.markdown("### Seleccione los síntomas asociados a su motivo de consulta:")
         sintomas_tumor = {
@@ -610,7 +698,7 @@ elif motivo == "Tumor Intracraneal":
         ciclos_quimio = st.number_input("¿Cuántos ciclos ha recibido?", min_value=0, step=1) if quimio == "Sí" else None
 
         campos_tumor_validos = (
-            tratamiento_tumor != "" and
+            tratamiento_tumor != "Seleccione..." and
             any(sintomas_tumor.values()) and
             kps is not None and
             radio_terapia in ["No", "Sí"] and
@@ -620,7 +708,35 @@ elif motivo == "Tumor Intracraneal":
         )
 
         if st.button("Enviar", key="enviar_tumor"):
-            if campos_generales_validos and campos_tumor_validos:
+            errores = []
+            if not campos_generales_validos:
+                if nombre.strip() == "":
+                    errores.append("Debe ingresar el nombre completo.")
+                if edad <= 0:
+                    errores.append("Debe ingresar una edad válida.")
+                if sexo == "Seleccione...":
+                    errores.append("Debe seleccionar el sexo.")
+                if consulta not in ["Primera vez", "Subsecuente"]:
+                    errores.append("Debe seleccionar el tipo de consulta.")
+                if motivo == "Seleccione...":
+                    errores.append("Debe seleccionar el motivo de consulta.")
+            if tratamiento_tumor == "Seleccione...":
+                errores.append("Debe seleccionar el estatus de tratamiento.")
+            if not any(sintomas_tumor.values()):
+                errores.append("Debe seleccionar al menos un síntoma asociado.")
+            if kps is None:
+                errores.append("Debe seleccionar el estado funcional (KPS).")
+            if radio_terapia not in ["No", "Sí"]:
+                errores.append("Debe indicar si ha recibido radioterapia.")
+            if radio_terapia == "Sí" and sesiones_radio is None:
+                errores.append("Debe indicar el número de sesiones de radioterapia.")
+            if quimio not in ["No", "Sí"]:
+                errores.append("Debe indicar si ha recibido quimioterapia.")
+            if quimio == "Sí" and ciclos_quimio is None:
+                errores.append("Debe indicar el número de ciclos de quimioterapia.")
+            if errores:
+                st.error("❌ Por favor complete los siguientes campos obligatorios antes de enviar el formulario:\n\n" + "\n".join([f"- {e}" for e in errores]))
+            else:
                 st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -650,17 +766,16 @@ elif motivo == "Tumor Intracraneal":
                     sheet.append_row(list(datos.values()))
                 except Exception as e:
                     st.error(f"❌ Error al guardar en Google Sheets: {e}")
-            else:
-                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Neuralgia del Trigémino":
     with st.expander("Ingresar datos de Neuralgia del Trigémino", expanded=True):
         tratamiento_trigemino = st.radio("Estatus de tratamiento", [
+            "Seleccione...",
             "Será valorado en consulta",
             "Tratamiento con medicamentos y fisioterapia",
             "Preparación para cirugía",
             "Operado previamente con otro doctor",
             "Operado previamente con Dr. Ulises García"
-        ])
+        ], index=0)
 
         st.markdown("### Seleccione los síntomas asociados a su motivo de consulta:")
         sintomas_trigemino = {
@@ -679,24 +794,49 @@ elif motivo == "Neuralgia del Trigémino":
         bni = st.radio(
             "Seleccione la opción que más describa su situación actual:",
             [
+                "Seleccione...",
                 "1 - Actualmente sin dolor incluso sin tomar medicamentos",
                 "2 - Dolor ocasional, no requiero de medicamentos",
                 "3 - Dolor controlado adecuadamente con medicamentos",
                 "4 - Dolor no controlado con medicamentos",
                 "5 - Dolor severo sin alivio"
-            ]
+            ], index=0
         )
 
         campos_trigemino_validos = (
-            tratamiento_trigemino != "" and
+            tratamiento_trigemino != "Seleccione..." and
             any(sintomas_trigemino.values()) and
             vas_derecha is not None and
             vas_izquierda is not None and
-            bni is not None
+            bni is not None and bni != "Seleccione..."
         )
 
         if st.button("Enviar", key="enviar_trigemino"):
-            if campos_generales_validos and campos_trigemino_validos:
+            errores = []
+            if not campos_generales_validos:
+                if nombre.strip() == "":
+                    errores.append("Debe ingresar el nombre completo.")
+                if edad <= 0:
+                    errores.append("Debe ingresar una edad válida.")
+                if sexo == "Seleccione...":
+                    errores.append("Debe seleccionar el sexo.")
+                if consulta not in ["Primera vez", "Subsecuente"]:
+                    errores.append("Debe seleccionar el tipo de consulta.")
+                if motivo == "Seleccione...":
+                    errores.append("Debe seleccionar el motivo de consulta.")
+            if tratamiento_trigemino == "Seleccione...":
+                errores.append("Debe seleccionar el estatus de tratamiento.")
+            if not any(sintomas_trigemino.values()):
+                errores.append("Debe seleccionar al menos un síntoma asociado.")
+            if vas_derecha is None:
+                errores.append("Debe seleccionar la intensidad del dolor en hemicara derecha.")
+            if vas_izquierda is None:
+                errores.append("Debe seleccionar la intensidad del dolor en hemicara izquierda.")
+            if bni is None or bni == "Seleccione...":
+                errores.append("Debe seleccionar el nivel de control del dolor (BNI).")
+            if errores:
+                st.error("❌ Por favor complete los siguientes campos obligatorios antes de enviar el formulario:\n\n" + "\n".join([f"- {e}" for e in errores]))
+            else:
                 st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -724,17 +864,16 @@ elif motivo == "Neuralgia del Trigémino":
                     sheet.append_row(list(datos.values()))
                 except Exception as e:
                     st.error(f"❌ Error al guardar en Google Sheets: {e}")
-            else:
-                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Aneurisma Intracraneal / Malformación Arteriovenosa / Angioma Cavernoso":
     with st.expander("Ingresar datos de Aneurisma / MAV / Cavernoma", expanded=True):
         tratamiento_vascular = st.radio("Estatus de tratamiento", [
+            "Seleccione...",
             "Será valorado en consulta",
             "Tratamiento con medicamentos y fisioterapia",
             "Preparación para cirugía",
             "Operado previamente con otro doctor",
             "Operado previamente con Dr. Ulises García"
-        ])
+        ], index=0)
 
         st.markdown("### Seleccione los síntomas asociados a su motivo de consulta:")
         sintomas_vascular = {
@@ -767,13 +906,33 @@ elif motivo == "Aneurisma Intracraneal / Malformación Arteriovenosa / Angioma C
         kps_vascular = st.radio("Seleccione la opción que más se parezca a su estado actual:", kps_opciones)
 
         campos_vascular_validos = (
-            tratamiento_vascular != "" and
+            tratamiento_vascular != "Seleccione..." and
             any(sintomas_vascular.values()) and
             kps_vascular is not None
         )
 
         if st.button("Enviar", key="enviar_vascular"):
-            if campos_generales_validos and campos_vascular_validos:
+            errores = []
+            if not campos_generales_validos:
+                if nombre.strip() == "":
+                    errores.append("Debe ingresar el nombre completo.")
+                if edad <= 0:
+                    errores.append("Debe ingresar una edad válida.")
+                if sexo == "Seleccione...":
+                    errores.append("Debe seleccionar el sexo.")
+                if consulta not in ["Primera vez", "Subsecuente"]:
+                    errores.append("Debe seleccionar el tipo de consulta.")
+                if motivo == "Seleccione...":
+                    errores.append("Debe seleccionar el motivo de consulta.")
+            if tratamiento_vascular == "Seleccione...":
+                errores.append("Debe seleccionar el estatus de tratamiento.")
+            if not any(sintomas_vascular.values()):
+                errores.append("Debe seleccionar al menos un síntoma asociado.")
+            if kps_vascular is None:
+                errores.append("Debe seleccionar el estado funcional (KPS).")
+            if errores:
+                st.error("❌ Por favor complete los siguientes campos obligatorios antes de enviar el formulario:\n\n" + "\n".join([f"- {e}" for e in errores]))
+            else:
                 st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 seleccionados = [s for s, v in sintomas_vascular.items() if v]
@@ -798,14 +957,13 @@ elif motivo == "Aneurisma Intracraneal / Malformación Arteriovenosa / Angioma C
                     sheet.append_row(list(datos.values()))
                 except Exception as e:
                     st.error(f"❌ Error al guardar en Google Sheets: {e}")
-            else:
-                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Traumatismo Craneoencefálico":
     with st.expander("Ingresar datos de Traumatismo Craneoencefálico", expanded=True):
         st.markdown("### Nivel de Recuperación Neurológica")
         gos = st.radio(
             "Seleccione la opción que mejor describa su estado actual:",
             [
+                "Seleccione...",
                 "Se encuentra despierto pero no responde a su entorno (estado vegetativo)",
                 "Necesita ayuda constante para todas sus actividades diarias (discapacidad severa - total)",
                 "Necesita ayuda parcial para actividades diarias importantes (discapacidad severa - parcial)",
@@ -813,15 +971,31 @@ elif motivo == "Traumatismo Craneoencefálico":
                 "Puede trabajar o estudiar con limitaciones (discapacidad moderada con adaptación)",
                 "Se siente casi completamente recuperado, aunque con síntomas leves como dolor de cabeza o fatiga (buena recuperación)",
                 "Se siente completamente recuperado, sin síntomas ni limitaciones (recuperación completa)"
-            ]
+            ], index=0
         )
 
         campos_tce_validos = (
-            gos is not None
+            gos is not None and gos != "Seleccione..."
         )
 
         if st.button("Enviar", key="enviar_tce"):
-            if campos_generales_validos and campos_tce_validos:
+            errores = []
+            if not campos_generales_validos:
+                if nombre.strip() == "":
+                    errores.append("Debe ingresar el nombre completo.")
+                if edad <= 0:
+                    errores.append("Debe ingresar una edad válida.")
+                if sexo == "Seleccione...":
+                    errores.append("Debe seleccionar el sexo.")
+                if consulta not in ["Primera vez", "Subsecuente"]:
+                    errores.append("Debe seleccionar el tipo de consulta.")
+                if motivo == "Seleccione...":
+                    errores.append("Debe seleccionar el motivo de consulta.")
+            if gos is None or gos == "Seleccione...":
+                errores.append("Debe seleccionar el estado actual (GOS-E).")
+            if errores:
+                st.error("❌ Por favor complete los siguientes campos obligatorios antes de enviar el formulario:\n\n" + "\n".join([f"- {e}" for e in errores]))
+            else:
                 st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 datos = {
@@ -842,17 +1016,16 @@ elif motivo == "Traumatismo Craneoencefálico":
                     sheet.append_row(list(datos.values()))
                 except Exception as e:
                     st.error(f"❌ Error al guardar en Google Sheets: {e}")
-            else:
-                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Enfermedad Vascular Cerebral (EVC / Ictus)":
     with st.expander("Ingresar datos de Enfermedad Vascular Cerebral (Ictus)", expanded=True):
         tratamiento_evc = st.radio("Estatus de tratamiento", [
+            "Seleccione...",
             "Será valorado en consulta",
             "Tratamiento con medicamentos y fisioterapia",
             "Preparación para cirugía",
             "Operado previamente con otro doctor",
             "Operado previamente con Dr. Ulises García"
-        ])
+        ], index=0)
 
         st.markdown("### Seleccione los síntomas asociados a su motivo de consulta:")
         sintomas_evc = {
@@ -872,23 +1045,44 @@ elif motivo == "Enfermedad Vascular Cerebral (EVC / Ictus)":
         rankin = st.radio(
             "Seleccione la opción que más se parezca a su estado actual:",
             [
+                "Seleccione...",
                 "0 - Sin síntomas",
                 "1 - Sin discapacidad significativa; capaz de realizar todas las actividades habituales, a pesar de algunos síntomas",
                 "2 - Discapacidad leve; incapaz de realizar todas las actividades previas, pero capaz de cuidar de sí mismo sin ayuda",
                 "3 - Discapacidad moderada; requiere algo de ayuda, pero puede caminar sin asistencia",
                 "4 - Discapacidad moderadamente severa; incapaz de atender sus propias necesidades corporales sin asistencia y no puede caminar sin ayuda",
                 "5 - Discapacidad severa; confinado en cama, incontinente y requiere atención constante",
-            ]
+            ], index=0
         )
 
         campos_evc_validos = (
-            tratamiento_evc != "" and
+            tratamiento_evc != "Seleccione..." and
             any(sintomas_evc.values()) and
-            rankin is not None
+            rankin is not None and rankin != "Seleccione..."
         )
 
         if st.button("Enviar", key="enviar_evc"):
-            if campos_generales_validos and campos_evc_validos:
+            errores = []
+            if not campos_generales_validos:
+                if nombre.strip() == "":
+                    errores.append("Debe ingresar el nombre completo.")
+                if edad <= 0:
+                    errores.append("Debe ingresar una edad válida.")
+                if sexo == "Seleccione...":
+                    errores.append("Debe seleccionar el sexo.")
+                if consulta not in ["Primera vez", "Subsecuente"]:
+                    errores.append("Debe seleccionar el tipo de consulta.")
+                if motivo == "Seleccione...":
+                    errores.append("Debe seleccionar el motivo de consulta.")
+            if tratamiento_evc == "Seleccione...":
+                errores.append("Debe seleccionar el estatus de tratamiento.")
+            if not any(sintomas_evc.values()):
+                errores.append("Debe seleccionar al menos un síntoma asociado.")
+            if rankin is None or rankin == "Seleccione...":
+                errores.append("Debe seleccionar el nivel de independencia funcional (Rankin).")
+            if errores:
+                st.error("❌ Por favor complete los siguientes campos obligatorios antes de enviar el formulario:\n\n" + "\n".join([f"- {e}" for e in errores]))
+            else:
                 st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -914,17 +1108,16 @@ elif motivo == "Enfermedad Vascular Cerebral (EVC / Ictus)":
                     sheet.append_row(list(datos.values()))
                 except Exception as e:
                     st.error(f"❌ Error al guardar en Google Sheets: {e}")
-            else:
-                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Hidrocefalia":
     with st.expander("Ingresar datos de Hidrocefalia", expanded=True):
         tratamiento_hidro = st.radio("Estatus de tratamiento", [
+            "Seleccione...",
             "Será valorado en consulta",
             "Tratamiento con medicamentos y fisioterapia",
             "Preparación para cirugía",
             "Operado previamente con otro doctor",
             "Operado previamente con Dr. Ulises García"
-        ])
+        ], index=0)
 
         st.markdown("### Seleccione los síntomas asociados a su motivo de consulta:")
         sintomas_hidro = {
@@ -940,12 +1133,30 @@ elif motivo == "Hidrocefalia":
         }
 
         campos_hidro_validos = (
-            tratamiento_hidro != "" and
+            tratamiento_hidro != "Seleccione..." and
             any(sintomas_hidro.values())
         )
 
         if st.button("Enviar", key="enviar_hidro"):
-            if campos_generales_validos and campos_hidro_validos:
+            errores = []
+            if not campos_generales_validos:
+                if nombre.strip() == "":
+                    errores.append("Debe ingresar el nombre completo.")
+                if edad <= 0:
+                    errores.append("Debe ingresar una edad válida.")
+                if sexo == "Seleccione...":
+                    errores.append("Debe seleccionar el sexo.")
+                if consulta not in ["Primera vez", "Subsecuente"]:
+                    errores.append("Debe seleccionar el tipo de consulta.")
+                if motivo == "Seleccione...":
+                    errores.append("Debe seleccionar el motivo de consulta.")
+            if tratamiento_hidro == "Seleccione...":
+                errores.append("Debe seleccionar el estatus de tratamiento.")
+            if not any(sintomas_hidro.values()):
+                errores.append("Debe seleccionar al menos un síntoma asociado.")
+            if errores:
+                st.error("❌ Por favor complete los siguientes campos obligatorios antes de enviar el formulario:\n\n" + "\n".join([f"- {e}" for e in errores]))
+            else:
                 st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -970,18 +1181,17 @@ elif motivo == "Hidrocefalia":
                     sheet.append_row(list(datos.values()))
                 except Exception as e:
                     st.error(f"❌ Error al guardar en Google Sheets: {e}")
-            else:
-                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 
 elif motivo == "Síntomas Inespecíficos (mareo, vértigo, náusea, vómito, debilidad)":
     with st.expander("Ingresar datos de Síntomas Inespecíficos", expanded=True):
         tratamiento_inesp = st.radio("Estatus de tratamiento", [
+            "Seleccione...",
             "Será valorado en consulta",
             "Tratamiento con medicamentos y fisioterapia",
             "Preparación para cirugía",
             "Operado previamente con otro doctor",
             "Operado previamente con Dr. Ulises García"
-        ])
+        ], index=0)
 
         st.markdown("### Seleccione los síntomas asociados a su motivo de consulta:")
         sintomas_inesp = {
@@ -1004,13 +1214,33 @@ elif motivo == "Síntomas Inespecíficos (mareo, vértigo, náusea, vómito, deb
         vas_inesp = st.radio("¿Qué tan intensos son sus síntomas actualmente?", [f"{i}%" for i in range(0, 101, 10)], horizontal=True)
 
         campos_inesp_validos = (
-            tratamiento_inesp != "" and
+            tratamiento_inesp != "Seleccione..." and
             any(sintomas_inesp.values()) and
             vas_inesp is not None
         )
 
         if st.button("Enviar", key="enviar_inesp"):
-            if campos_generales_validos and campos_inesp_validos:
+            errores = []
+            if not campos_generales_validos:
+                if nombre.strip() == "":
+                    errores.append("Debe ingresar el nombre completo.")
+                if edad <= 0:
+                    errores.append("Debe ingresar una edad válida.")
+                if sexo == "Seleccione...":
+                    errores.append("Debe seleccionar el sexo.")
+                if consulta not in ["Primera vez", "Subsecuente"]:
+                    errores.append("Debe seleccionar el tipo de consulta.")
+                if motivo == "Seleccione...":
+                    errores.append("Debe seleccionar el motivo de consulta.")
+            if tratamiento_inesp == "Seleccione...":
+                errores.append("Debe seleccionar el estatus de tratamiento.")
+            if not any(sintomas_inesp.values()):
+                errores.append("Debe seleccionar al menos un síntoma asociado.")
+            if vas_inesp is None:
+                errores.append("Debe seleccionar la intensidad de los síntomas.")
+            if errores:
+                st.error("❌ Por favor complete los siguientes campos obligatorios antes de enviar el formulario:\n\n" + "\n".join([f"- {e}" for e in errores]))
+            else:
                 st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
 
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -1036,8 +1266,6 @@ elif motivo == "Síntomas Inespecíficos (mareo, vértigo, náusea, vómito, deb
                     sheet.append_row(list(datos.values()))
                 except Exception as e:
                     st.error(f"❌ Error al guardar en Google Sheets: {e}")
-            else:
-                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo == "Otro (especificar)":
     with st.expander("Ingresar datos de Otro motivo de consulta", expanded=True):
         motivo_otro = st.text_input("Describa brevemente el motivo de su consulta:")
