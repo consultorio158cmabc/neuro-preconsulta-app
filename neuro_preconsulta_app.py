@@ -42,15 +42,14 @@ motivo = st.selectbox("Motivo de consulta", [
     "Seleccione...",
     "Dolor / Cirugía Lumbar",
     "Dolor / Cirugía Cervical",
-    "Dolor / Cirugía Columna Dorsal",
+    "Dolor / Cirugía Columna Torácica",
     "Tumor Intracraneal",
     "Neuralgia del Trigémino",
     "Aneurisma Intracraneal / Malformación Arteriovenosa / Angioma Cavernoso",
     "Traumatismo Craneoencefálico",
     "Enfermedad Vascular Cerebral (EVC / Ictus)",
     "Hidrocefalia",
-    "Síntomas Inespecíficos (mareo, vértigo, náusea, vómito, debilidad)",
-    "Otro (especificar)"
+    "Síntomas Inespecíficos (mareo, vértigo, náusea, vómito, debilidad)"
 ])
 campos_generales_validos = (
     nombre.strip() != "" and
@@ -539,8 +538,8 @@ elif motivo == "Dolor / Cirugía Cervical":
                     sheet.append_row(list(datos.values()))
                 except Exception as e:
                     st.error(f"❌ Error al guardar en Google Sheets: {e}")
-elif motivo == "Dolor / Cirugía Columna Dorsal":
-    with st.expander("Ingresar datos de Dolor / Cirugía en columna dorsal", expanded=True):
+elif motivo == "Dolor / Cirugía Columna Torácica":
+    with st.expander("Ingresar datos de Dolor / Cirugía en columna torácica", expanded=True):
         tratamiento_dorsal = st.radio("Estatus de tratamiento", [
             "Seleccione...",
             "Será valorado en consulta",
@@ -552,13 +551,13 @@ elif motivo == "Dolor / Cirugía Columna Dorsal":
 
         st.markdown("### Seleccione los síntomas asociados a su motivo de consulta:")
         sintomas_dorsal = {
-            "Dolor en columna dorsal": st.checkbox("Dolor en columna dorsal"),
-            "Hormigueo o parestesias en región dorsal de la columna": st.checkbox("Hormigueo o parestesias en región dorsal de la columna")
+            "Dolor en columna torácica": st.checkbox("Dolor en columna torácica"),
+            "Hormigueo o parestesias en región torácica de la columna": st.checkbox("Hormigueo o parestesias en región torácica de la columna")
         }
 
         st.markdown("### Intensidad del dolor")
         st.image("VAS.jpg", caption="Escala Visual Análoga (VAS)", use_container_width=True)
-        vas_dorsal = st.radio("Dolor en columna dorsal:", [f"{i}%" for i in range(0, 101, 10)], horizontal=True)
+        vas_dorsal = st.radio("Dolor en columna torácica:", [f"{i}%" for i in range(0, 101, 10)], horizontal=True)
 
         st.markdown("### Dificultad para la marcha")
         nurick_dorsal = st.radio(
@@ -635,7 +634,7 @@ elif motivo == "Dolor / Cirugía Columna Dorsal":
                     "Tipo de consulta": consulta,
                     "Estatus de tratamiento": tratamiento_dorsal,
                     "Síntomas": ", ".join(seleccionados),
-                    "VAS dorsal": vas_dorsal,
+                    "VAS columna torácica": vas_dorsal,
                     "Nurick": nurick_dorsal,
                     "MacNab": macnab_dorsal if macnab_dorsal else "N/A"
                 }
@@ -643,7 +642,7 @@ elif motivo == "Dolor / Cirugía Columna Dorsal":
                 df = pd.DataFrame([datos])
                 try:
                     client = conectar_google_sheets()
-                    sheet = client.open("respuestas_neuro").worksheet("Dolor_Cirugía_Columna_Dorsal")
+                    sheet = client.open("respuestas_neuro").worksheet("Dolor_Cirugía_Columna_Torácica")
                     if sheet.row_count == 0 or not any(sheet.row_values(1)):
                         sheet.append_row(list(datos.keys()))
                     sheet.append_row(list(datos.values()))
@@ -1266,52 +1265,16 @@ elif motivo == "Síntomas Inespecíficos (mareo, vértigo, náusea, vómito, deb
                     sheet.append_row(list(datos.values()))
                 except Exception as e:
                     st.error(f"❌ Error al guardar en Google Sheets: {e}")
-elif motivo == "Otro (especificar)":
-    with st.expander("Ingresar datos de Otro motivo de consulta", expanded=True):
-        motivo_otro = st.text_input("Describa brevemente el motivo de su consulta:")
-        sintomas_otro = st.text_area("Describa los síntomas que presenta:")
-
-        campos_otro_validos = (
-            motivo_otro.strip() != "" and sintomas_otro.strip() != ""
-        )
-
-        if st.button("Enviar", key="enviar_otro"):
-            if campos_generales_validos and campos_otro_validos:
-                st.success("✅ Agradecemos por su visita, en breve lo pasamos a su consulta")
-
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                datos = {
-                    "Fecha y hora": timestamp,
-                    "Nombre": nombre,
-                    "Edad": edad,
-                    "Sexo": sexo,
-                    "Tipo de consulta": consulta,
-                    "Motivo especificado": motivo_otro,
-                    "Síntomas": sintomas_otro
-                }
-
-                df = pd.DataFrame([datos])
-                try:
-                    client = conectar_google_sheets()
-                    sheet = client.open("respuestas_neuro").worksheet("Otro")
-                    if sheet.row_count == 0 or not any(sheet.row_values(1)):
-                        sheet.append_row(list(datos.keys()))
-                    sheet.append_row(list(datos.values()))
-                except Exception as e:
-                    st.error(f"❌ Error al guardar en Google Sheets: {e}")
-            else:
-                st.error("❌ Por favor complete todos los campos obligatorios antes de enviar el formulario.")
 elif motivo != "Seleccione..." and motivo not in [
     "Dolor / Cirugía Lumbar",
     "Dolor / Cirugía Cervical",
-    "Dolor / Cirugía Columna Dorsal"
+    "Dolor / Cirugía Columna Torácica",
     "Tumor Intracraneal",
     "Neuralgia del Trigémino",
     "Aneurisma Intracraneal / Malformación Arteriovenosa / Angioma Cavernoso",
-    "Traumatismo Craneoencefálico"
+    "Traumatismo Craneoencefálico",
     "Enfermedad Vascular Cerebral (EVC / Ictus)",
-    "Hidrocefalia"
+    "Hidrocefalia",
     "Síntomas Inespecíficos (mareo, vértigo, náusea, vómito, debilidad)"
-    "Otro (especificar)"
 ]:
     st.warning("⚠️ Esta sección estará disponible próximamente.")
